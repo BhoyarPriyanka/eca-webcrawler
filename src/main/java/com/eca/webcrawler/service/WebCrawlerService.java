@@ -1,5 +1,6 @@
 package com.eca.webcrawler.service;
 
+import lombok.extern.slf4j.Slf4j;
 import org.jsoup.Connection;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -7,35 +8,39 @@ import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
 import java.io.IOException;
-import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.Queue;
 import java.util.Set;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.ConcurrentSkipListSet;
 
+@Slf4j
 public class WebCrawlerService {
-
     private final String domain;
-    private final Set<String> visited = new HashSet<>();
-    private final Queue<String> queue = new LinkedList<>();
+    private final int maxDepth;
+    private final Set<String> visited = new ConcurrentSkipListSet<>();
+    private final Queue<UrlDepth> queue = new ConcurrentLinkedQueue<>();
 
-    public WebCrawlerService(String domain) {
+    public WebCrawlerService(String domain, int maxDepth) {
         this.domain = domain;
+        this.maxDepth = maxDepth;
     }
 
     public Set<String> crawl(String startUrl) {
-        queue.add(startUrl);
+        queue.add(new UrlDepth(startUrl, 1));
         visited.add(startUrl);
         while (!queue.isEmpty()) {
-            String currentUrl = queue.poll();
-            processUrl(currentUrl);
+            UrlDepth current = queue.poll();
+            if (current.depth <= maxDepth) {
+                processUrl(current);
+            }
         }
         return visited;
     }
 
-    private void processUrl(String url) {
+    private void processUrl(UrlDepth urlDepth) {
 
         try {
-            Connection.Response response = Jsoup.connect(url)
+            Connection.Response response = Jsoup.connect(urlDepth.url)
                     .timeout(5000)
                     .followRedirects(true)
                     .execute();
@@ -49,13 +54,14 @@ public class WebCrawlerService {
             for (Element link : links) {
                 String absUrl = link.attr("abs:href");
 
-                if (isInternalLink(absUrl) && !visited.contains(absUrl)) {
-                    queue.add(absUrl);
-                    visited.add(absUrl);
+                if (isInternalLink(absUrl) && visited.add(absUrl)) {
+                    queue.add(new UrlDepth(absUrl, urlDepth.depth + 1));
                 }
             }
-        } catch (IOException e) {
-            System.err.println("Failed to crawl: " + url + " because of " + e.getMessage());
+        } catch (IOException ioException) {
+
+            log.error(" Failed to crawl url::{} and error::{}", urlDepth.url, ioException.getMessage());
+
         }
     }
 
@@ -63,5 +69,14 @@ public class WebCrawlerService {
         return url != null && url.startsWith(domain);
     }
 
+    private static class UrlDepth {
+        String url;
+        int depth;
+
+        UrlDepth(String url, int depth) {
+            this.url = url;
+            this.depth = depth;
+        }
+    }
 
 }
