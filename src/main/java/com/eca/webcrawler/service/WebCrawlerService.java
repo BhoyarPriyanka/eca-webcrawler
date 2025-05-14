@@ -19,7 +19,9 @@ public class WebCrawlerService {
     private final int maxDepth;
     private final Set<String> visited = new ConcurrentSkipListSet<>();
     private final Queue<UrlDepth> queue = new ConcurrentLinkedQueue<>();
-
+    //here service process url and store extracted url in queue to process in next time
+    //here first all the url on 1st level get process one after one and result we add in the queue for second level
+    //here will be no case where 2nd level of url get process before the first level of url.
     public WebCrawlerService(String domain, int maxDepth) {
         this.domain = domain;
         this.maxDepth = maxDepth;
@@ -59,7 +61,7 @@ public class WebCrawlerService {
                 }
             }
         } catch (IOException ioException) {
-
+            //currently not handle the failed url ? do we need to retry we count or if still not success need to schedule for later time
             log.error(" Failed to crawl url::{} and error::{}", urlDepth.url, ioException.getMessage());
 
         }

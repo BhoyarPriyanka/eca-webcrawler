@@ -22,7 +22,10 @@ public class WebCrawlerServiceWorkerBased {
 
         Set<String> visited = ConcurrentHashMap.newKeySet();
         BlockingQueue<UrlDepth> queue = new LinkedBlockingQueue<>();
-
+        //here service process url and store extracted url in queue to process in next time
+        //here all the url on 1st level get process by different thread and result will get added in the queue.
+        //here if first level of url is still taking time to process in a separate thread , other thread which is free can execute the next url of 3rth or 4th level and finished its task
+        //so here queue doest always have the url to process on same level, the level can be different
         queue.add(new UrlDepth(startUrl, 1));
         visited.add(startUrl);
 
