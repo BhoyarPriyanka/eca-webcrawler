@@ -69,14 +69,4 @@ public class WebCrawlerService {
         return url != null && url.startsWith(domain);
     }
 
-    private static class UrlDepth {
-        String url;
-        int depth;
-
-        UrlDepth(String url, int depth) {
-            this.url = url;
-            this.depth = depth;
-        }
-    }
-
 }
